@@ -20,11 +20,39 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for [Fi
 
 ## Requirements
 
-- Python 3.12+
-- [uv](https://github.com/astral-sh/uv)
+- Python 3.12+ **or** Docker
 - Firefly III running (Docker or standalone)
 
-## Setup
+## Docker (recommended)
+
+The image is published automatically to GHCR on every push to `main`.
+
+### Run directly on the VM
+
+```bash
+docker pull ghcr.io/mariugul/firefly-mcp:latest
+docker run --rm --network host -e FIREFLY_TOKEN=your_token ghcr.io/mariugul/firefly-mcp
+```
+
+`--network host` is required so the container can reach Firefly at `localhost:8080`.
+
+### Windsurf MCP config (Docker)
+
+```json
+{
+  "mcpServers": {
+    "firefly": {
+      "command": "ssh",
+      "args": [
+        "firefly",
+        "docker run --rm --network host -e FIREFLY_TOKEN=your_token ghcr.io/mariugul/firefly-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+## Setup (manual / development)
 
 ### 1. Install uv
 
