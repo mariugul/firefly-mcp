@@ -198,8 +198,13 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     return [types.TextContent(type="text", text=json.dumps(result, indent=2, ensure_ascii=False))]
 
 
+async def _main():
+    async with stdio_server() as (read_stream, write_stream):
+        await app.run(read_stream, write_stream, app.create_initialization_options())
+
+
 def main():
-    asyncio.run(stdio_server(app))
+    asyncio.run(_main())
 
 
 if __name__ == "__main__":
