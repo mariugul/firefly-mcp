@@ -198,12 +198,14 @@ async def create_category(name: str) -> dict:
 # --- Import ---
 
 async def trigger_import(csv_path: str, config_path: str) -> str:
-    """Trigger the Firefly data importer via its HTTP API."""
+    """Trigger the Firefly data importer via the /autoupload endpoint."""
     importer_url = os.environ.get("FIREFLY_IMPORTER_URL", "http://localhost:8081")
+    secret = os.environ.get("AUTO_IMPORT_SECRET", "")
     async with httpx.AsyncClient(timeout=120) as client:
         with open(csv_path, "rb") as csv_file, open(config_path, "rb") as cfg_file:
             r = await client.post(
-                f"{importer_url}/api/upload",
+                f"{importer_url}/autoupload",
+                data={"secret": secret},
                 files={
                     "importable": (os.path.basename(csv_path), csv_file, "text/csv"),
                     "json": (os.path.basename(config_path), cfg_file, "application/json"),
@@ -211,4 +213,4 @@ async def trigger_import(csv_path: str, config_path: str) -> str:
                 headers={"Authorization": f"Bearer {FIREFLY_TOKEN}"},
             )
         r.raise_for_status()
-        return r.text
+        return r.json() if r.headers.get("content-type", "").startswith("application/json") else r.text
