@@ -261,7 +261,7 @@ async def trigger_import(csv_path: str, config_path: str) -> str:
     """Trigger the Firefly data importer via the /autoupload endpoint."""
     importer_url = os.environ.get("FIREFLY_IMPORTER_URL", "http://localhost:8081")
     secret = os.environ.get("AUTO_IMPORT_SECRET", "")
-    async with httpx.AsyncClient(timeout=120) as client:
+    async with httpx.AsyncClient(timeout=900) as client:
         with open(csv_path, "rb") as csv_file, open(config_path, "rb") as cfg_file:
             r = await client.post(
                 f"{importer_url}/autoupload",
