@@ -197,6 +197,22 @@ async def create_category(name: str) -> dict:
 
 # --- Import ---
 
+async def trigger_import_content(csv_content: str, config_content: str) -> str:
+    """Trigger import using raw file contents — writes to temp files then imports."""
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w", encoding="utf-8") as cf:
+        cf.write(csv_content)
+        csv_path = cf.name
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w", encoding="utf-8") as jf:
+        jf.write(config_content)
+        config_path = jf.name
+    try:
+        return await trigger_import(csv_path, config_path)
+    finally:
+        os.unlink(csv_path)
+        os.unlink(config_path)
+
+
 async def trigger_import(csv_path: str, config_path: str) -> str:
     """Trigger the Firefly data importer via the /autoupload endpoint."""
     importer_url = os.environ.get("FIREFLY_IMPORTER_URL", "http://localhost:8081")

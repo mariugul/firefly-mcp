@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -97,13 +98,13 @@ async def list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="trigger_import",
-            description="Trigger a CSV import via the Firefly III data importer.",
+            description="Trigger a CSV import via the Firefly III data importer. Pass the raw file contents directly — no need to copy files to the VM first.",
             inputSchema={
                 "type": "object",
-                "required": ["csv_path", "config_path"],
+                "required": ["csv_content", "config_content"],
                 "properties": {
-                    "csv_path": {"type": "string", "description": "Absolute path to the CSV file on the VM"},
-                    "config_path": {"type": "string", "description": "Absolute path to the importer JSON config on the VM"},
+                    "csv_content": {"type": "string", "description": "Raw CSV file content as a string"},
+                    "config_content": {"type": "string", "description": "Raw JSON config file content as a string"},
                 },
             },
         ),
@@ -181,7 +182,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 budget_name=arguments.get("budget_name"),
             )
         elif name == "trigger_import":
-            result = await fc.trigger_import(arguments["csv_path"], arguments["config_path"])
+            result = await fc.trigger_import_content(arguments["csv_content"], arguments["config_content"])
         elif name == "list_budgets":
             result = await fc.list_budgets()
         elif name == "create_budget":
