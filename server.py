@@ -66,6 +66,11 @@ async def list_tools() -> list[types.Tool]:
             },
         ),
         types.Tool(
+            name="delete_all_transactions",
+            description="Delete ALL transactions in Firefly III across all accounts. Irreversible.",
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        types.Tool(
             name="list_transactions",
             description="List transactions, optionally filtered by account, date range, and limit.",
             inputSchema={
@@ -168,6 +173,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             result = await fc.update_account(arguments["account_id"], arguments["fields"])
         elif name == "delete_account":
             result = await fc.delete_account(arguments["account_id"])
+        elif name == "delete_all_transactions":
+            result = await fc.delete_all_transactions()
         elif name == "list_transactions":
             result = await fc.list_transactions(
                 account_id=arguments.get("account_id"),

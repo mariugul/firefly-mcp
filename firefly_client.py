@@ -98,6 +98,20 @@ async def delete_account(account_id: str) -> str:
 
 # --- Transactions ---
 
+async def delete_all_transactions() -> dict:
+    """Delete all transactions across all accounts."""
+    deleted = 0
+    while True:
+        data = await get("/transactions", params={"limit": 50})
+        txns = data.get("data", [])
+        if not txns:
+            break
+        for t in txns:
+            await delete(f"/transactions/{t['id']}")
+            deleted += 1
+    return {"deleted": deleted}
+
+
 async def list_transactions(
     account_id: str | None = None,
     start: str | None = None,
