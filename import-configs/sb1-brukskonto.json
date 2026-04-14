@@ -9,7 +9,7 @@
   "add_import_tag": true,
   "specifics": {},
   "roles": {
-    "0": "_ignore",
+    "0": "external-id",
     "1": "date_transaction",
     "2": "description",
     "3": "amount",
