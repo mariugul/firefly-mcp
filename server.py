@@ -67,8 +67,14 @@ async def list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="delete_all_transactions",
-            description="Delete ALL transactions in Firefly III across all accounts. Irreversible.",
-            inputSchema={"type": "object", "properties": {}},
+            description="Delete ALL transactions in Firefly III across all accounts. Irreversible. You MUST pass confirm=true to execute — always ask the user to confirm before calling this.",
+            inputSchema={
+                "type": "object",
+                "required": ["confirm"],
+                "properties": {
+                    "confirm": {"type": "boolean", "description": "Must be true to proceed. Always ask the user before setting this."},
+                },
+            },
         ),
         types.Tool(
             name="list_transactions",
@@ -174,7 +180,10 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         elif name == "delete_account":
             result = await fc.delete_account(arguments["account_id"])
         elif name == "delete_all_transactions":
-            result = await fc.delete_all_transactions()
+            if not arguments.get("confirm"):
+                result = "Aborted: you must pass confirm=true to delete all transactions."
+            else:
+                result = await fc.delete_all_transactions()
         elif name == "list_transactions":
             result = await fc.list_transactions(
                 account_id=arguments.get("account_id"),
