@@ -98,15 +98,20 @@ async def list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="trigger_import",
-            description="Trigger a CSV import via the Firefly III data importer. Pass the raw file contents directly — no need to copy files to the VM first.",
+            description="Trigger a CSV import via the Firefly III data importer. Pass the raw CSV content and the name of a config stored on the server (e.g. 'normalized-brukskonto').",
             inputSchema={
                 "type": "object",
-                "required": ["csv_content", "config_content"],
+                "required": ["csv_content", "config_name"],
                 "properties": {
                     "csv_content": {"type": "string", "description": "Raw CSV file content as a string"},
-                    "config_content": {"type": "string", "description": "Raw JSON config file content as a string"},
+                    "config_name": {"type": "string", "description": "Name of the import config stored on the server under ~/imports/configs/, without .json extension"},
                 },
             },
+        ),
+        types.Tool(
+            name="list_import_configs",
+            description="List available import config names stored on the server.",
+            inputSchema={"type": "object", "properties": {}},
         ),
         types.Tool(
             name="list_budgets",
@@ -182,7 +187,9 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 budget_name=arguments.get("budget_name"),
             )
         elif name == "trigger_import":
-            result = await fc.trigger_import_content(arguments["csv_content"], arguments["config_content"])
+            result = await fc.trigger_import_with_config_name(arguments["csv_content"], arguments["config_name"])
+        elif name == "list_import_configs":
+            result = await fc.list_import_configs()
         elif name == "list_budgets":
             result = await fc.list_budgets()
         elif name == "create_budget":

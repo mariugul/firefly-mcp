@@ -197,6 +197,26 @@ async def create_category(name: str) -> dict:
 
 # --- Import ---
 
+CONFIGS_DIR = os.path.expanduser("~/imports/configs")
+
+
+async def list_import_configs() -> list:
+    """List available import config names stored on the server."""
+    if not os.path.isdir(CONFIGS_DIR):
+        return []
+    return [f[:-5] for f in os.listdir(CONFIGS_DIR) if f.endswith(".json")]
+
+
+async def trigger_import_with_config_name(csv_content: str, config_name: str) -> str:
+    """Trigger import using raw CSV content and a named config stored on the server."""
+    config_path = os.path.join(CONFIGS_DIR, f"{config_name}.json")
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Config '{config_name}' not found in {CONFIGS_DIR}. Available: {await list_import_configs()}")
+    with open(config_path, "r", encoding="utf-8") as f:
+        config_content = f.read()
+    return await trigger_import_content(csv_content, config_content)
+
+
 async def trigger_import_content(csv_content: str, config_content: str) -> str:
     """Trigger import using raw file contents — writes to temp files then imports."""
     import tempfile
