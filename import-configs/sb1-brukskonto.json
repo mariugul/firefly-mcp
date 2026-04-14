@@ -1,0 +1,41 @@
+{
+  "version": 3,
+  "source": "file",
+  "date": "Y-m-d",
+  "delimiter": "comma",
+  "headers": true,
+  "rules": true,
+  "skip_form": true,
+  "add_import_tag": true,
+  "specifics": {},
+  "roles": {
+    "0": "_ignore",
+    "1": "date_transaction",
+    "2": "description",
+    "3": "amount",
+    "4": "_ignore",
+    "5": "_ignore",
+    "6": "_ignore",
+    "7": "_ignore"
+  },
+  "do_mapping": {
+    "0": false,
+    "1": false,
+    "2": false,
+    "3": false,
+    "4": false,
+    "5": false,
+    "6": false,
+    "7": false
+  },
+  "mapping": {},
+  "content_type": "csv",
+  "duplicate_detection_method": "classic",
+  "unique_column_index": 0,
+  "unique_column_type": "internal_reference",
+  "ignore_duplicate_lines": true,
+  "ignore_duplicate_transactions": true,
+  "flow": "file",
+  "conversion": false,
+  "default_account": 8
+}
