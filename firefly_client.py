@@ -249,4 +249,7 @@ async def trigger_import(csv_path: str, config_path: str) -> str:
                 headers={"Authorization": f"Bearer {FIREFLY_TOKEN}"},
             )
         r.raise_for_status()
-        return r.json() if r.headers.get("content-type", "").startswith("application/json") else r.text
+        try:
+            return r.json()
+        except Exception:
+            return r.text
