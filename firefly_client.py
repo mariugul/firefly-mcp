@@ -107,8 +107,13 @@ async def delete_all_transactions() -> dict:
         if not txns:
             break
         for t in txns:
-            await delete(f"/transactions/{t['id']}")
-            deleted += 1
+            try:
+                await delete(f"/transactions/{t['id']}")
+                deleted += 1
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    continue
+                raise
     return {"deleted": deleted}
 
 
