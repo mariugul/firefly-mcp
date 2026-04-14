@@ -120,6 +120,18 @@ async def list_tools() -> list[types.Tool]:
             },
         ),
         types.Tool(
+            name="import_from_path",
+            description="Trigger a CSV import using a file path on the server. Use this instead of trigger_import when the CSV file already exists on the server (e.g. written by sb1_transactions).",
+            inputSchema={
+                "type": "object",
+                "required": ["csv_path", "config_name"],
+                "properties": {
+                    "csv_path": {"type": "string", "description": "Absolute path to the CSV file on the server (e.g. /tmp/brukskonto.csv)"},
+                    "config_name": {"type": "string", "description": "Name of the import config stored on the server under ~/imports/configs/, without .json extension"},
+                },
+            },
+        ),
+        types.Tool(
             name="list_import_configs",
             description="List available import config names stored on the server.",
             inputSchema={"type": "object", "properties": {}},
@@ -204,6 +216,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             )
         elif name == "trigger_import":
             result = await fc.trigger_import_with_config_name(arguments["csv_content"], arguments["config_name"])
+        elif name == "import_from_path":
+            result = await fc.import_from_path(arguments["csv_path"], arguments["config_name"])
         elif name == "list_import_configs":
             result = await fc.list_import_configs()
         elif name == "list_budgets":

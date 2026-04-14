@@ -221,6 +221,16 @@ async def list_import_configs() -> list:
     return [f[:-5] for f in os.listdir(CONFIGS_DIR) if f.endswith(".json")]
 
 
+async def import_from_path(csv_path: str, config_name: str) -> str:
+    """Trigger import using a CSV file path already on the server."""
+    config_path = os.path.join(CONFIGS_DIR, f"{config_name}.json")
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Config '{config_name}' not found in {CONFIGS_DIR}. Available: {await list_import_configs()}")
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"CSV file not found: {csv_path}")
+    return await trigger_import(csv_path, config_path)
+
+
 async def trigger_import_with_config_name(csv_content: str, config_name: str) -> str:
     """Trigger import using raw CSV content and a named config stored on the server."""
     config_path = os.path.join(CONFIGS_DIR, f"{config_name}.json")
