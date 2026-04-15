@@ -211,6 +211,11 @@ async def list_tools() -> list[types.Tool]:
                 },
             },
         ),
+        types.Tool(
+            name="apply_rules_to_existing",
+            description="Apply all active rules to existing transactions in Firefly III.",
+            inputSchema={"type": "object", "properties": {}},
+        ),
     ]
 
 
@@ -285,6 +290,8 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 stop_processing=arguments.get("stop_processing", True),
                 strict=arguments.get("strict", False),
             )
+        elif name == "apply_rules_to_existing":
+            result = await fc.apply_rules_to_existing()
         else:
             result = f"Unknown tool: {name}"
     except Exception as e:

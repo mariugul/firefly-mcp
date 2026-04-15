@@ -213,6 +213,25 @@ async def create_rule(
     return {"id": data["data"]["id"], "title": title}
 
 
+async def apply_rules_to_existing() -> dict:
+    """Apply all active rules to existing transactions in Firefly III."""
+    # Get all rules
+    rules_data = await get("/rules")
+    rules = rules_data.get("data", [])
+    
+    applied_count = 0
+    for rule in rules:
+        rule_id = rule["id"]
+        # Trigger rule application for existing transactions
+        try:
+            await post(f"/rules/{rule_id}/trigger", {})
+            applied_count += 1
+        except Exception:
+            pass  # Some rules may not support triggering
+    
+    return {"applied_rules": applied_count, "total_rules": len(rules)}
+
+
 async def _import_one(client: httpx.AsyncClient, row: dict, account_id: int) -> str:
     """Import a single CSV row. Returns 'created', 'duplicate', or 'error: ...'."""
     amount = float(row["amount"])
