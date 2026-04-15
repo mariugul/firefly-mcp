@@ -222,16 +222,53 @@ async def _import_one(client: httpx.AsyncClient, row: dict, account_id: int) -> 
     return "created"
 
 
+async def _fetch_existing_external_ids(account_id: int) -> set[str]:
+    """Fetch all external_ids already stored for a given account."""
+    existing = set()
+    page = 1
+    async with httpx.AsyncClient() as client:
+        while True:
+            r = await client.get(
+                f"{FIREFLY_URL}/accounts/{account_id}/transactions",
+                headers=_headers(),
+                params={"limit": 500, "page": page},
+                timeout=60,
+            )
+            r.raise_for_status()
+            data = r.json()
+            txns = data.get("data", [])
+            if not txns:
+                break
+            for t in txns:
+                for split in t["attributes"].get("transactions", []):
+                    eid = split.get("external_id")
+                    if eid:
+                        existing.add(eid)
+            if page >= data["meta"]["pagination"]["total_pages"]:
+                break
+            page += 1
+    return existing
+
+
 async def bulk_import_csv(csv_path: str, account_id: int, concurrency: int = 10) -> dict:
     """Import all rows from a CSV file directly to the Firefly API in parallel.
 
+    Pre-fetches existing external_ids to skip duplicates without extra API calls per row.
     Returns a summary dict with created, duplicate, error counts.
     """
     with open(csv_path, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
 
     total = len(rows)
-    results = {"created": 0, "duplicate": 0, "errors": [], "total": total}
+    existing_ids = await _fetch_existing_external_ids(account_id)
+
+    new_rows = [r for r in rows if r["id"] not in existing_ids]
+    skipped = total - len(new_rows)
+
+    results = {"created": 0, "duplicate": skipped, "errors": [], "total": total}
+    if not new_rows:
+        return results
+
     semaphore = asyncio.Semaphore(concurrency)
 
     async def bounded(row: dict) -> str:
@@ -239,7 +276,7 @@ async def bulk_import_csv(csv_path: str, account_id: int, concurrency: int = 10)
             return await _import_one(client, row, account_id)
 
     async with httpx.AsyncClient() as client:
-        outcomes = await asyncio.gather(*[bounded(row) for row in rows])
+        outcomes = await asyncio.gather(*[bounded(row) for row in new_rows])
 
     for outcome in outcomes:
         if outcome == "created":
