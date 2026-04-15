@@ -222,16 +222,22 @@ async def _import_one(client: httpx.AsyncClient, row: dict, account_id: int) -> 
     return "created"
 
 
-async def _fetch_existing_external_ids(account_id: int) -> set[str]:
-    """Fetch all external_ids already stored for a given account."""
+async def _fetch_existing_external_ids(start: str | None = None, end: str | None = None) -> set[str]:
+    """Fetch all external_ids already stored in Firefly, optionally filtered by date range."""
     existing = set()
     page = 1
+    params: dict = {"limit": 500, "page": page}
+    if start:
+        params["start"] = start
+    if end:
+        params["end"] = end
     async with httpx.AsyncClient() as client:
         while True:
+            params["page"] = page
             r = await client.get(
-                f"{FIREFLY_URL}/accounts/{account_id}/transactions",
+                f"{FIREFLY_URL}/transactions",
                 headers=_headers(),
-                params={"limit": 500, "page": page},
+                params=params,
                 timeout=60,
             )
             if r.status_code in (500, 404):
@@ -262,7 +268,10 @@ async def bulk_import_csv(csv_path: str, account_id: int, concurrency: int = 10)
         rows = list(csv.DictReader(f))
 
     total = len(rows)
-    existing_ids = await _fetch_existing_external_ids(account_id)
+    dates = [r["date"] for r in rows if r.get("date")]
+    start = min(dates) if dates else None
+    end = max(dates) if dates else None
+    existing_ids = await _fetch_existing_external_ids(start, end)
 
     new_rows = [r for r in rows if r["id"] not in existing_ids]
     skipped = total - len(new_rows)
