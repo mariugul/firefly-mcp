@@ -234,6 +234,8 @@ async def _fetch_existing_external_ids(account_id: int) -> set[str]:
                 params={"limit": 500, "page": page},
                 timeout=60,
             )
+            if r.status_code in (500, 404):
+                break
             r.raise_for_status()
             data = r.json()
             txns = data.get("data", [])
