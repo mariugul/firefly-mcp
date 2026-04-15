@@ -1,10 +1,16 @@
 import asyncio
 import base64
 import json
+import os
+import sys
+import atexit
+from pathlib import Path
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp import types
 import firefly_client as fc
+
+PID_FILE = Path("/tmp/firefly-mcp.pid")
 
 app = Server("firefly-mcp")
 
@@ -284,12 +290,42 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     return [types.TextContent(type="text", text=json.dumps(result, indent=2, ensure_ascii=False))]
 
 
+def _manage_pid_file():
+    """Ensure only one MCP server instance runs. Kill old process if exists."""
+    current_pid = os.getpid()
+    
+    if PID_FILE.exists():
+        try:
+            old_pid = int(PID_FILE.read_text().strip())
+            # Check if process still exists
+            os.kill(old_pid, 0)
+            # Process exists, kill it
+            try:
+                os.kill(old_pid, 9)
+                print(f"Killed old MCP server process {old_pid}", file=sys.stderr)
+            except ProcessLookupError:
+                pass
+        except (ValueError, ProcessLookupError, OSError):
+            pass
+    
+    # Write current PID
+    PID_FILE.write_text(str(current_pid))
+    
+    # Cleanup on exit
+    def cleanup():
+        if PID_FILE.exists() and PID_FILE.read_text().strip() == str(current_pid):
+            PID_FILE.unlink()
+    
+    atexit.register(cleanup)
+
+
 async def _main():
     async with stdio_server() as (read_stream, write_stream):
         await app.run(read_stream, write_stream, app.create_initialization_options())
 
 
 def main():
+    _manage_pid_file()
     asyncio.run(_main())
 
 
