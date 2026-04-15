@@ -193,8 +193,10 @@ async def create_rule(
     """
     for i, c in enumerate(conditions, 1):
         c.setdefault("order", i)
+        c.setdefault("prohibited", False)
     for i, a in enumerate(actions, 1):
         a.setdefault("order", i)
+        a.setdefault("active", True)
     groups = await get("/rule-groups")
     group_id = groups["data"][0]["id"] if groups.get("data") else "1"
     body = {
@@ -204,7 +206,7 @@ async def create_rule(
         "strict": strict,
         "stop_processing": stop_processing,
         "rule_group_id": group_id,
-        "conditions": conditions,
+        "triggers": conditions,
         "actions": actions,
     }
     data = await post("/rules", body)
