@@ -213,23 +213,49 @@ async def create_rule(
     return {"id": data["data"]["id"], "title": title}
 
 
-async def apply_rules_to_existing() -> dict:
-    """Apply all active rules to existing transactions in Firefly III."""
-    # Get all rules
-    rules_data = await get("/rules")
-    rules = rules_data.get("data", [])
+async def apply_rules_to_existing(limit: int = 1000) -> dict:
+    """Apply all active rules to existing transactions by updating them.
     
-    applied_count = 0
-    for rule in rules:
-        rule_id = rule["id"]
-        # Trigger rule application for existing transactions
+    Firefly evaluates rules when transactions are created/updated.
+    We 'touch' each transaction (update with same data) to trigger re-evaluation.
+    """
+    # Get all transactions
+    txns_data = await get("/transactions", params={"limit": limit})
+    transactions = txns_data.get("data", [])
+    
+    touched_count = 0
+    for txn in transactions:
+        txn_id = txn["id"]
+        attributes = txn.get("attributes", {})
+        splits = attributes.get("transactions", [])
+        
+        if not splits:
+            continue
+            
+        # Re-save the transaction with same data to trigger rule evaluation
         try:
-            await post(f"/rules/{rule_id}/trigger", {})
-            applied_count += 1
+            # Build update body with existing split data
+            update_splits = []
+            for split in splits:
+                update_split = {
+                    "type": split.get("type"),
+                    "date": split.get("date"),
+                    "amount": split.get("amount"),
+                    "description": split.get("description"),
+                }
+                # Include optional fields if present
+                if split.get("source_id"):
+                    update_split["source_id"] = split["source_id"]
+                if split.get("destination_id"):
+                    update_split["destination_id"] = split["destination_id"]
+                update_splits.append(update_split)
+            
+            await put(f"/transactions/{txn_id}", {"transactions": update_splits})
+            touched_count += 1
         except Exception:
-            pass  # Some rules may not support triggering
+            pass  # Skip if update fails
     
-    return {"applied_rules": applied_count, "total_rules": len(rules)}
+    return {"touched_transactions": touched_count, "total_transactions": len(transactions)}
 
 
 async def _import_one(client: httpx.AsyncClient, row: dict, account_id: int) -> str:
