@@ -1,8 +1,11 @@
+import sys
+# Disable bytecode caching to ensure code changes take effect immediately
+sys.dont_write_bytecode = True
+
 import asyncio
 import base64
 import json
 import os
-import sys
 import atexit
 from pathlib import Path
 from mcp.server import Server
