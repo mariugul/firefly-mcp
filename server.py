@@ -132,6 +132,23 @@ async def list_tools() -> list[types.Tool]:
             },
         ),
         types.Tool(
+            name="bulk_import",
+            description=(
+                "Import a CSV file directly to Firefly III via the API — fast, parallel, no PHP importer. "
+                "CSV must have columns: id, date, description, amount, remote_account (as written by sb1_transactions). "
+                "Returns a summary of created/duplicate/error counts."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["csv_path", "account_id"],
+                "properties": {
+                    "csv_path": {"type": "string", "description": "Absolute path to the CSV file on the server"},
+                    "account_id": {"type": "integer", "description": "Firefly III asset account ID (e.g. 8 for Brukskonto)"},
+                    "concurrency": {"type": "integer", "description": "Number of parallel API calls (default: 10)", "default": 10},
+                },
+            },
+        ),
+        types.Tool(
             name="list_import_configs",
             description="List available import config names stored on the server.",
             inputSchema={"type": "object", "properties": {}},
@@ -218,6 +235,12 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             result = await fc.trigger_import_with_config_name(arguments["csv_content"], arguments["config_name"])
         elif name == "import_from_path":
             result = await fc.import_from_path(arguments["csv_path"], arguments["config_name"])
+        elif name == "bulk_import":
+            result = await fc.bulk_import_csv(
+                arguments["csv_path"],
+                arguments["account_id"],
+                arguments.get("concurrency", 10),
+            )
         elif name == "list_import_configs":
             result = await fc.list_import_configs()
         elif name == "list_budgets":

@@ -1,3 +1,5 @@
+import asyncio
+import csv
 import os
 import httpx
 
@@ -173,6 +175,81 @@ async def create_transaction(
         split["budget_name"] = budget_name
     data = await post("/transactions", {"transactions": [split]})
     return {"id": data["data"]["id"]}
+
+
+async def _import_one(client: httpx.AsyncClient, row: dict, account_id: int) -> str:
+    """Import a single CSV row. Returns 'created', 'duplicate', or 'error: ...'."""
+    amount = float(row["amount"])
+    if amount >= 0:
+        txn_type = "deposit"
+        body = {
+            "transactions": [{
+                "type": txn_type,
+                "date": row["date"],
+                "amount": str(abs(amount)),
+                "description": row["description"],
+                "destination_id": account_id,
+                "source_name": row.get("remote_account") or "(no name)",
+                "external_id": row["id"],
+            }]
+        }
+    else:
+        txn_type = "withdrawal"
+        body = {
+            "transactions": [{
+                "type": txn_type,
+                "date": row["date"],
+                "amount": str(abs(amount)),
+                "description": row["description"],
+                "source_id": account_id,
+                "destination_name": row.get("remote_account") or "(no name)",
+                "external_id": row["id"],
+            }]
+        }
+    r = await client.post(
+        f"{FIREFLY_URL}/transactions",
+        headers=_headers(),
+        json=body,
+        timeout=30,
+    )
+    if r.status_code == 422:
+        errs = r.json().get("errors", {})
+        if any("duplicate" in str(v).lower() for v in errs.values()):
+            return "duplicate"
+        return f"error: {r.text[:200]}"
+    if not r.is_success:
+        return f"error: {r.status_code} {r.text[:200]}"
+    return "created"
+
+
+async def bulk_import_csv(csv_path: str, account_id: int, concurrency: int = 10) -> dict:
+    """Import all rows from a CSV file directly to the Firefly API in parallel.
+
+    Returns a summary dict with created, duplicate, error counts.
+    """
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+
+    total = len(rows)
+    results = {"created": 0, "duplicate": 0, "errors": [], "total": total}
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def bounded(row: dict) -> str:
+        async with semaphore:
+            return await _import_one(client, row, account_id)
+
+    async with httpx.AsyncClient() as client:
+        outcomes = await asyncio.gather(*[bounded(row) for row in rows])
+
+    for outcome in outcomes:
+        if outcome == "created":
+            results["created"] += 1
+        elif outcome == "duplicate":
+            results["duplicate"] += 1
+        else:
+            results["errors"].append(outcome)
+
+    return results
 
 
 # --- Budgets ---
