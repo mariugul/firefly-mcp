@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import os
+from datetime import datetime, timezone
 import httpx
 
 FIREFLY_URL = os.environ.get("FIREFLY_URL", "http://localhost:8080/api/v1")
@@ -271,6 +272,10 @@ async def create_bill(
     
     repeat_freq: yearly, monthly, weekly, daily
     """
+    # Generate ISO format date with timezone (required field)
+    now = datetime.now(timezone.utc)
+    date_str = now.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    
     body: dict = {
         "name": name,
         "amount_min": str(amount_min),
@@ -278,6 +283,7 @@ async def create_bill(
         "currency_code": currency_code,
         "repeat_freq": repeat_freq,
         "active": active,
+        "date": date_str,
     }
     if notes:
         body["notes"] = notes
