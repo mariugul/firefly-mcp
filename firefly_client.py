@@ -180,6 +180,7 @@ async def create_transaction(
 async def _import_one(client: httpx.AsyncClient, row: dict, account_id: int) -> str:
     """Import a single CSV row. Returns 'created', 'duplicate', or 'error: ...'."""
     amount = float(row["amount"])
+    tags = [row["type_code"]] if row.get("type_code") else []
     if amount >= 0:
         txn_type = "deposit"
         body = {
@@ -191,6 +192,7 @@ async def _import_one(client: httpx.AsyncClient, row: dict, account_id: int) -> 
                 "destination_id": account_id,
                 "source_name": row.get("remote_account") or "(no name)",
                 "external_id": row["id"],
+                "tags": tags,
             }]
         }
     else:
@@ -204,6 +206,7 @@ async def _import_one(client: httpx.AsyncClient, row: dict, account_id: int) -> 
                 "source_id": account_id,
                 "destination_name": row.get("remote_account") or "(no name)",
                 "external_id": row["id"],
+                "tags": tags,
             }]
         }
     r = await client.post(
