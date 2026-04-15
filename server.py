@@ -221,6 +221,23 @@ async def list_tools() -> list[types.Tool]:
                 },
             },
         ),
+        types.Tool(
+            name="create_bill",
+            description="Create a bill (subscription) in Firefly III for recurring expenses.",
+            inputSchema={
+                "type": "object",
+                "required": ["name", "amount_min", "amount_max"],
+                "properties": {
+                    "name": {"type": "string", "description": "Name of the subscription (e.g. Netflix)"},
+                    "amount_min": {"type": "number", "description": "Minimum expected amount"},
+                    "amount_max": {"type": "number", "description": "Maximum expected amount"},
+                    "currency_code": {"type": "string", "default": "NOK"},
+                    "repeat_freq": {"type": "string", "description": "yearly, monthly, weekly, daily", "default": "monthly"},
+                    "active": {"type": "boolean", "default": True},
+                    "notes": {"type": "string"},
+                },
+            },
+        ),
     ]
 
 
@@ -297,6 +314,16 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             )
         elif name == "apply_rules_to_existing":
             result = await fc.apply_rules_to_existing(arguments.get("limit", 1000))
+        elif name == "create_bill":
+            result = await fc.create_bill(
+                name=arguments["name"],
+                amount_min=arguments["amount_min"],
+                amount_max=arguments["amount_max"],
+                currency_code=arguments.get("currency_code", "NOK"),
+                repeat_freq=arguments.get("repeat_freq", "monthly"),
+                active=arguments.get("active", True),
+                notes=arguments.get("notes"),
+            )
         else:
             result = f"Unknown tool: {name}"
     except Exception as e:

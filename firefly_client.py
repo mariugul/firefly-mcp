@@ -258,6 +258,34 @@ async def apply_rules_to_existing(limit: int = 1000) -> dict:
     return {"touched_transactions": touched_count, "total_transactions": len(transactions)}
 
 
+async def create_bill(
+    name: str,
+    amount_min: float,
+    amount_max: float,
+    currency_code: str = "NOK",
+    repeat_freq: str = "monthly",
+    active: bool = True,
+    notes: str | None = None,
+) -> dict:
+    """Create a bill (subscription) in Firefly III.
+    
+    repeat_freq: yearly, monthly, weekly, daily
+    """
+    body: dict = {
+        "name": name,
+        "amount_min": str(amount_min),
+        "amount_max": str(amount_max),
+        "currency_code": currency_code,
+        "repeat_freq": repeat_freq,
+        "active": active,
+    }
+    if notes:
+        body["notes"] = notes
+    
+    data = await post("/bills", body)
+    return {"id": data["data"]["id"], "name": name}
+
+
 async def _import_one(client: httpx.AsyncClient, row: dict, account_id: int) -> str:
     """Import a single CSV row. Returns 'created', 'duplicate', or 'error: ...'."""
     amount = float(row["amount"])
