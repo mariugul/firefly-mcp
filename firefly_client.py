@@ -191,12 +191,19 @@ async def create_rule(
     conditions: list of {type, value} dicts e.g. {"type": "description_contains", "value": "REMA"}
     actions: list of {type, value} dicts e.g. {"type": "set_category", "value": "Mat og dagligvarer"}
     """
+    for i, c in enumerate(conditions, 1):
+        c.setdefault("order", i)
+    for i, a in enumerate(actions, 1):
+        a.setdefault("order", i)
+    groups = await get("/rule-groups")
+    group_id = groups["data"][0]["id"] if groups.get("data") else "1"
     body = {
         "title": title,
         "trigger": trigger,
         "active": True,
         "strict": strict,
         "stop_processing": stop_processing,
+        "rule_group_id": group_id,
         "conditions": conditions,
         "actions": actions,
     }
