@@ -186,6 +186,22 @@ async def list_tools() -> list[types.Tool]:
                 },
             },
         ),
+        types.Tool(
+            name="create_rule",
+            description="Create a Firefly III rule to auto-categorize transactions.",
+            inputSchema={
+                "type": "object",
+                "required": ["title", "trigger", "conditions", "actions"],
+                "properties": {
+                    "title": {"type": "string"},
+                    "trigger": {"type": "string", "description": "store-journal or update-journal"},
+                    "conditions": {"type": "array", "description": "List of {type, value} condition dicts"},
+                    "actions": {"type": "array", "description": "List of {type, value} action dicts"},
+                    "stop_processing": {"type": "boolean", "default": True},
+                    "strict": {"type": "boolean", "default": False},
+                },
+            },
+        ),
     ]
 
 
@@ -251,6 +267,15 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             result = await fc.list_categories()
         elif name == "create_category":
             result = await fc.create_category(arguments["name"])
+        elif name == "create_rule":
+            result = await fc.create_rule(
+                title=arguments["title"],
+                trigger=arguments["trigger"],
+                conditions=arguments["conditions"],
+                actions=arguments["actions"],
+                stop_processing=arguments.get("stop_processing", True),
+                strict=arguments.get("strict", False),
+            )
         else:
             result = f"Unknown tool: {name}"
     except Exception as e:

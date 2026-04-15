@@ -177,6 +177,33 @@ async def create_transaction(
     return {"id": data["data"]["id"]}
 
 
+async def create_rule(
+    title: str,
+    trigger: str,
+    conditions: list[dict],
+    actions: list[dict],
+    stop_processing: bool = True,
+    strict: bool = False,
+) -> dict:
+    """Create a Firefly III rule.
+
+    trigger: 'store-journal' or 'update-journal'
+    conditions: list of {type, value} dicts e.g. {"type": "description_contains", "value": "REMA"}
+    actions: list of {type, value} dicts e.g. {"type": "set_category", "value": "Mat og dagligvarer"}
+    """
+    body = {
+        "title": title,
+        "trigger": trigger,
+        "active": True,
+        "strict": strict,
+        "stop_processing": stop_processing,
+        "conditions": conditions,
+        "actions": actions,
+    }
+    data = await post("/rules", body)
+    return {"id": data["data"]["id"], "title": title}
+
+
 async def _import_one(client: httpx.AsyncClient, row: dict, account_id: int) -> str:
     """Import a single CSV row. Returns 'created', 'duplicate', or 'error: ...'."""
     amount = float(row["amount"])
